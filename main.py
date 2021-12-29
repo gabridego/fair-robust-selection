@@ -1,26 +1,17 @@
-import sys, os
-import numpy as np
-import math
 import random
-import itertools
-import copy
-
-from torch.autograd import Variable
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
-from torch.utils.data.sampler import Sampler
-import torch
-
-from sklearn.datasets import make_classification
-from sklearn.model_selection import train_test_split
-
-from models import LogisticRegression, weights_init_normal, test_model
-from FairRobustSampler import FairRobust, CustomDataset
-
+import warnings
 from argparse import Namespace
 
-import warnings
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader
+
+from FairRobustSampler import FairRobust, CustomDataset
+from models import weights_init_normal, test_model
 
 warnings.filterwarnings("ignore")
 
@@ -141,14 +132,14 @@ if __name__ == '__main__':
         torch.manual_seed(seed)
     model.apply(weights_init_normal)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, betas=(0.9, 0.999))
-    # optimizer = torch.optim.SGD(model.parameters(), lr=0.005)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, betas=(0.9, 0.999))
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.005)
 
     losses = []
 
     sampler = FairRobust(model, train_data.x, train_data.y, train_data.z, target_fairness='eqodds',
                          algorithm=algorithm, parameters=parameters, replacement=False, seed=seed)
-    train_loader = torch.utils.data.DataLoader(train_data, sampler=sampler, num_workers=0)
+    train_loader = DataLoader(train_data, sampler=sampler, num_workers=0)
 
     for epoch in range(n_epochs):
         print(epoch, end="\r")
