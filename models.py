@@ -1,5 +1,63 @@
+import warnings
+
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+def lr_epoch(model, train_features, labels, optimizer):
+    """Trains a logistic regression with the given train data.
+
+    Args:
+        model: A torch model to train.
+        train_features: A torch tensor indicating the train features.
+        labels: A torch tensor indicating the true labels.
+        optimizer: A torch optimizer.
+
+    Returns:
+        loss values.
+    """
+
+    optimizer.zero_grad()
+
+    label_predicted = model.forward(train_features)
+    loss = nn.BCELoss()((F.tanh(label_predicted.squeeze()) + 1) / 2, (labels.squeeze() + 1) / 2)
+    loss.backward()
+
+    optimizer.step()
+
+    return loss.item()
+
+
+def svm_epoch(model, c, train_features, labels, optimizer):
+    """Trains a support vector machines with the given train data.
+
+    Args:
+        model: A torch model to train.
+        c: Regularization parameter. The strength of the regularization is inversely proportional to C.
+           Must be strictly positive. The penalty is a squared l2 penalty.
+        train_features: A torch tensor indicating the train features.
+        labels: A torch tensor indicating the true labels.
+        optimizer: A torch optimizer.
+
+    Returns:
+        loss values.
+    """
+
+    optimizer.zero_grad()
+
+    label_predicted = model.forward(train_features)
+    weight = model.weight.squeeze()
+    loss = torch.mean(torch.clamp(1 - labels.squeeze() * label_predicted.squeeze(), min=0))
+    loss += c * (weight.t() @ weight) / 2.0
+    loss.backward()
+
+    optimizer.step()
+
+    return loss.item()
 
 
 def weights_init_normal(m):
@@ -98,3 +156,26 @@ def test_model(model_, X, y, s1):
 
     return {'Acc': test_acc.item(), 'DP_diff': DP, 'EO_Y0_diff': EO_Y_0, 'EO_Y1_diff': EO_Y_1,
             'EqOdds_diff': max(EO_Y_0, EO_Y_1)}
+
+
+def plot_boundaries(model, xz, y, s1):
+    x = xz[:, :-1]
+    if x.shape[-1] != 2:
+        warnings.warn('data do not have 2 features, not plotting')
+        return
+
+    delta = 0.001
+
+    W = model.weight.squeeze().detach().cpu().numpy()
+    b = model.bias.squeeze().detach().cpu().numpy()
+
+    x_lin = np.linspace(x[:, 0].min(), x[:, 0].max(), 100)
+    plt.figure(figsize=(10, 10))
+    plt.xlim([x[:, 0].min() + delta, x[:, 0].max() - delta])
+    plt.ylim([x[:, 1].min() + delta, x[:, 1].max() - delta])
+    plt.plot(x_lin, (-W[0] / W[1]) * x_lin + (-b / W[1]), c='black', lw=2)
+    zeros = s1 == 0
+    ones = s1 == 1
+    plt.scatter(x[zeros, 0], x[zeros, 1], c=y[zeros])
+    plt.scatter(x[ones, 0], x[ones, 1], c=y[ones], marker='^')
+    plt.show()

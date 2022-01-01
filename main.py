@@ -5,51 +5,15 @@ from argparse import Namespace
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
 from FairRobustSampler import FairRobust, CustomDataset
-from models import weights_init_normal, test_model
+from models import weights_init_normal, test_model, lr_epoch, svm_epoch, plot_boundaries
+from utils import corrupt_labels
 
 warnings.filterwarnings("ignore")
-
-
-def lr_epoch(model, train_features, labels, optimizer):
-    """Trains the model with the given train data.
-
-    Args:
-        model: A torch model to train.
-        train_features: A torch tensor indicating the train features.
-        labels: A torch tensor indicating the true labels.
-        optimizer: A torch optimizer.
-
-    Returns:
-        loss values.
-    """
-
-    optimizer.zero_grad()
-
-    label_predicted = model.forward(train_features)
-    loss = nn.BCELoss()((F.tanh(label_predicted.squeeze()) + 1) / 2, (labels.squeeze() + 1) / 2)
-    loss.backward()
-
-    optimizer.step()
-
-    return loss.item()
-
-
-def svm_epoch(model, train_features, labels, optimizer):
-    optimizer.zero_grad()
-
-    label_predicted = model.forward(train_features)
-    loss = torch.mean(torch.clamp(1 - labels.squeeze() * label_predicted.squeeze(), min=0))
-    loss.backward()
-
-    optimizer.step()
-
-    return loss.item()
 
 
 if __name__ == '__main__':
@@ -57,11 +21,12 @@ if __name__ == '__main__':
     train_size = 0.66
     n_epochs = 400
     poi_ratio = 0.1
-    seed = 1
+    c = 0.01
+    seed = None
 
-    algorithm = 'lr'
+    algorithm = 'svm'
 
-    test = False
+    test = True
 
     if test:
         n_features = 3
@@ -85,13 +50,7 @@ if __name__ == '__main__':
         z[:int(n_samples / 2)] = 1
         random.shuffle(z)
         xz = np.hstack((x, z[:, np.newaxis]))
-        y_noise = np.copy(y)
-        for i in range(len(y_noise)):
-            if random.random() < poi_ratio:
-                if y_noise[i] == -1:
-                    y_noise[i] = 1
-                else:
-                    y_noise[i] = -1
+        y_noise = corrupt_labels(y, poi_ratio)
 
         xz_train, xz_test, y_train, y_test = train_test_split(xz, y_noise, train_size=train_size)
 
@@ -150,10 +109,12 @@ if __name__ == '__main__':
             if algorithm == 'lr':
                 loss = lr_epoch(model, data, target, optimizer)
             elif algorithm == 'svm':
-                loss = svm_epoch(model, data, target, optimizer)
+                loss = svm_epoch(model, c, data, target, optimizer)
             tmp_loss.append(loss)
 
         losses.append(sum(tmp_loss) / len(tmp_loss))
 
     tmp_test = test_model(model, xz_test, y_test, z_test)
     print("  Test accuracy: {}, EO disparity: {}".format(tmp_test['Acc'], tmp_test['EqOdds_diff']))
+
+    plot_boundaries(model, xz_train, y_train, z_train)
