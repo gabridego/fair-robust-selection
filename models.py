@@ -158,7 +158,7 @@ def test_model(model_, X, y, s1):
             'EqOdds_diff': max(EO_Y_0, EO_Y_1)}
 
 
-def plot_boundaries(model, xz, y, s1):
+def plot_boundaries(model, xz, y, s1, ax=None):
     xz = xz.cpu().numpy()
     y = y.cpu().numpy()
     s1 = s1.cpu().numpy()
@@ -174,18 +174,23 @@ def plot_boundaries(model, xz, y, s1):
     b = model.bias.squeeze().detach().cpu().numpy()
 
     x_lin = np.linspace(x[:, 0].min(), x[:, 0].max(), 100)
-    plt.figure(figsize=(10, 10))
-    plt.xlim([x[:, 0].min() + delta, x[:, 0].max() - delta])
-    plt.ylim([x[:, 1].min() + delta, x[:, 1].max() - delta])
-    plt.plot(x_lin, (-W[0] / W[1]) * x_lin + (-b / W[1]), c='black', lw=2)
+
+    if ax:
+        axx = ax
+    else:
+        _, axx = plt.subplots(figsize=(10, 10))
+    axx.set_xlim([x[:, 0].min() + delta, x[:, 0].max() - delta])
+    axx.set_ylim([x[:, 1].min() + delta, x[:, 1].max() - delta])
+    axx.plot(x_lin, (-W[0] / W[1]) * x_lin + (-b / W[1]), c='black', lw=2)
     y_0_z_0 = np.logical_and(y <= 0, s1 == 0)
     y_0_z_1 = np.logical_and(y <= 0, s1 == 1)
     y_1_z_0 = np.logical_and(y > 0, s1 == 0)
     y_1_z_1 = np.logical_and(y > 0, s1 == 1)
 
-    plt.scatter(x[y_1_z_0, 0], x[y_1_z_0, 1], c='blue', marker='x', label="z=0 (pos)")
-    plt.scatter(x[y_0_z_0, 0], x[y_0_z_0, 1], c='red', marker='x', label="z=0 (neg)")
-    plt.scatter(x[y_1_z_1, 0], x[y_1_z_1, 1], edgecolors='blue', facecolors='none', label="z=1 (pos)")
-    plt.scatter(x[y_0_z_1, 0], x[y_0_z_1, 1], edgecolors='red', facecolors='none', label="z=1 (neg)")
-    plt.legend()
-    plt.show()
+    axx.scatter(x[y_1_z_0, 0], x[y_1_z_0, 1], c='C1', marker='x', label="z=0 (pos)")
+    axx.scatter(x[y_0_z_0, 0], x[y_0_z_0, 1], c='C0', marker='x', label="z=0 (neg)")
+    axx.scatter(x[y_1_z_1, 0], x[y_1_z_1, 1], edgecolors='C1', facecolors='none', label="z=1 (pos)")
+    axx.scatter(x[y_0_z_1, 0], x[y_0_z_1, 1], edgecolors='C0', facecolors='none', label="z=1 (neg)")
+    axx.legend()
+    if not ax:
+        plt.show()
