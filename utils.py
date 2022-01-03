@@ -12,7 +12,7 @@ def gen_gaussian(n_samples, mean_in, cov_in, class_label):
     return nv, X, y
 
 
-def gen_data(n_samples, mu1, sigma1, mu2, sigma2, phi):
+def gen_syn_data(n_samples, mu1, sigma1, mu2, sigma2, phi):
     """ Generate the non-sensitive features randomly """
     # We will generate one gaussian cluster for each class
     nv1, X1, y1 = gen_gaussian(mu1, sigma1, 1)  # positive class
@@ -71,4 +71,4 @@ if __name__ == '__main__':
     mu1, sigma1 = [2, 2], [[7, 1], [2, 5]]
     mu2, sigma2 = [-2, -2], [[2, 1], [1, 10]]
 
-    gen_data(n_samples, mu1, mu2, sigma1, sigma2, phi)
+    gen_syn_data(n_samples, mu1, mu2, sigma1, sigma2, phi)
