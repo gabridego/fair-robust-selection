@@ -159,9 +159,9 @@ def test_model(model_, X, y, s1):
 
 
 def plot_boundaries(model, xz, y, s1):
-    xz = xz.cpu()
-    y = y.cpu()
-    s1 = s1.cpu()
+    xz = xz.cpu().numpy()
+    y = y.cpu().numpy()
+    s1 = s1.cpu().numpy()
 
     x = xz[:, :-1]
     if x.shape[-1] != 2:
@@ -178,12 +178,14 @@ def plot_boundaries(model, xz, y, s1):
     plt.xlim([x[:, 0].min() + delta, x[:, 0].max() - delta])
     plt.ylim([x[:, 1].min() + delta, x[:, 1].max() - delta])
     plt.plot(x_lin, (-W[0] / W[1]) * x_lin + (-b / W[1]), c='black', lw=2)
-    y_0_z_0 = y == 0 and s1 == 0
-    y_0_z_1 = y == 0 and s1 == 1
-    y_1_z_0 = y == 1 and s1 == 0
-    y_1_z_1 = y == 1 and s1 == 1
-    plt.scatter(x[y_0_z_0, 0], x[y_0_z_0, 1], c='C0', marker='x', label="z=0 (neg)")
-    plt.scatter(x[y_0_z_1, 0], x[y_0_z_1, 1], c='C0', facecolors='none', label="z=1 (neg)")
-    plt.scatter(x[y_1_z_0, 0], x[y_1_z_0, 1], c='C1', marker='x', label="z=0 (pos)")
-    plt.scatter(x[y_1_z_1, 0], x[y_1_z_1, 1], c='C1', facecolors='none', label="z=1 (pos)")
+    y_0_z_0 = np.logical_and(y <= 0, s1 == 0)
+    y_0_z_1 = np.logical_and(y <= 0, s1 == 1)
+    y_1_z_0 = np.logical_and(y > 0, s1 == 0)
+    y_1_z_1 = np.logical_and(y > 0, s1 == 1)
+
+    plt.scatter(x[y_1_z_0, 0], x[y_1_z_0, 1], c='blue', marker='x', label="z=0 (pos)")
+    plt.scatter(x[y_0_z_0, 0], x[y_0_z_0, 1], c='red', marker='x', label="z=0 (neg)")
+    plt.scatter(x[y_1_z_1, 0], x[y_1_z_1, 1], edgecolors='blue', facecolors='none', label="z=1 (pos)")
+    plt.scatter(x[y_0_z_1, 0], x[y_0_z_1, 1], edgecolors='red', facecolors='none', label="z=1 (neg)")
+    plt.legend()
     plt.show()
