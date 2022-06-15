@@ -29,6 +29,7 @@ if __name__ == '__main__':
     test = True
 
     if test:
+        # load synthetic data
         n_features = 3
         xz_train = np.load('./synthetic_data/xz_train.npy')
         y_train = np.load('./synthetic_data/y_noise_general.npy')
@@ -41,6 +42,7 @@ if __name__ == '__main__':
         z_train = torch.FloatTensor(z_train)
         z_test = torch.FloatTensor(z_test)
     else:
+        # generate data points
         n_features = 20
         x, y = make_classification(n_samples, n_features - 1)
         for i in range(len(y)):
@@ -84,6 +86,7 @@ if __name__ == '__main__':
     parameters = Namespace(warm_start=100, tau=1 - poi_ratio, alpha=0.001, batch_size=100)
     train_data = CustomDataset(xz_train, y_train, z_train)
 
+    # initialize the model
     model = nn.Linear(n_features, 1)
     if torch.cuda.is_available():
         model.cuda()
@@ -100,6 +103,7 @@ if __name__ == '__main__':
                          algorithm=algorithm, parameters=parameters, replacement=False, seed=seed)
     train_loader = DataLoader(train_data, sampler=sampler, num_workers=0)
 
+    # training phase
     for epoch in range(n_epochs):
         print(epoch, end="\r")
 
@@ -114,6 +118,7 @@ if __name__ == '__main__':
 
         losses.append(sum(tmp_loss) / len(tmp_loss))
 
+    # test phase
     tmp_test = test_model(model, xz_test, y_test, z_test)
     print("  Test accuracy: {}, EO disparity: {}".format(tmp_test['Acc'], tmp_test['EqOdds_diff']))
 
